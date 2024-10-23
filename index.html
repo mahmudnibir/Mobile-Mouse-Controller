@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mouse Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #14a888;
+        }
+        h1 {
+            color: #081729;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #035214;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+            color: rgb(58, 50, 3);
+        }
+        #screen {
+            width: 80%;
+            height: auto;
+            border: 1px solid #000000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Move Your Phone to Control the Mouse</h1>
+    
+    <div class="controls">
+        <button id="leftClickBtn">Left Click</button>
+        <button id="rightClickBtn">Right Click</button>
+    </div>
+
+    <div id="status">Mouse not moving</div>
+    <img id="screen" src="/video_feed" alt="PC Screen">
+
+    <script>
+        let isMoving = false;
+
+        // Function to send POST request to Flask server
+        function sendMouseMove(x, y) {
+            const data = new FormData();
+            data.append('x', x);
+            data.append('y', y);
+
+            fetch('/move', {
+                method: 'POST',
+                body: data
+            }).then(response => {
+                if (response.ok) {
+                    console.log("Mouse moved successfully");
+                    isMoving = true;
+                    updateStatus();
+                } else {
+                    console.error("Failed to move mouse");
+                }
+            });
+        }
+
+        // Function to handle left click
+        document.getElementById('leftClickBtn').addEventListener('click', function() {
+            fetch('/left_click', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        console.log("Left Clicked");
+                        updateStatus("Left Clicked");
+                    }
+                });
+        });
+
+        // Function to handle right click
+        document.getElementById('rightClickBtn').addEventListener('click', function() {
+            fetch('/right_click', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        console.log("Right Clicked");
+                        updateStatus("Right Clicked");
+                    }
+                });
+        });
+
+        // Update status message
+        function updateStatus(message = "") {
+            const statusElement = document.getElementById('status');
+            if (isMoving) {
+                statusElement.textContent = "Mouse is moving " + message;
+            } else {
+                statusElement.textContent = message ? message : "Mouse not moving";
+            }
+        }
+
+        // Listen for device orientation events
+        window.addEventListener('deviceorientation', function(event) {
+            let x = event.gamma; // Left-to-right tilt
+            let y = event.beta;  // Front-to-back tilt
+
+            x = x * 5;  // Adjust the sensitivity
+            y = y * 5;
+
+            // Send the data to the Flask server
+            sendMouseMove(x, y);
+            isMoving = true; // Set moving status
+            updateStatus(); // Update the status message
+        });
+
+        // Reset moving status when user stops tilting
+        window.addEventListener('deviceorientationend', function() {
+            isMoving = false;
+            updateStatus();
+        });
+    </script>
+</body>
+</html>
